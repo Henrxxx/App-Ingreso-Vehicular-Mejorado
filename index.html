@@ -2080,12 +2080,16 @@ function abrirCamaraPersonalizada(formEl) {
   const btnCapturar = document.createElement('button');
   btnCapturar.textContent = '📸 Capturar';
   btnCapturar.style = `
-    width:80px;
-    height:80px;
-    border-radius:50%;
-    border:6px solid white;
-    background:rgba(255,255,255,0.2);
-    margin-bottom:20px;
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 6px solid white;
+    background: rgba(255,255,255,0.3);
+    z-index: 999999;
   `;
   btnCapturar.textContent = '';
 
