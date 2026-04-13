@@ -2141,6 +2141,18 @@ function abrirCamaraPersonalizada(formEl) {
 
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+      const flash = document.createElement('div');
+      flash.style = `
+        position:absolute;
+        inset:0;
+        background:white;
+        opacity:0.8;
+        z-index:100000;
+      `;
+      overlay.appendChild(flash);
+
+      setTimeout(() => flash.remove(), 100);
+
       canvas.toBlob(blob => {
         const file = new File([blob], `foto_${Date.now()}.jpg`, {
           type: 'image/jpeg'
