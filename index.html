@@ -1090,7 +1090,7 @@ let formCount = 1;
 /* =========================
    CONFIG FRONTEND
 ========================= */
-const API_BASE_URL = 'http://192.168.2.43:3000'; 
+const API_BASE_URL = 'http://192.168.2.43:3000';
 // Cuando lo subas luego, aquí pondrás la URL pública de tu backend.
 
 const formState = new Map();
@@ -1314,13 +1314,12 @@ function updateActionButtons(formEl) {
 
   if (btnEnviar) {
     btnEnviar.disabled =
-      !!state.uploading ||
-      !!state.sendingEmail ||
-      yaEnviado ||
-      !data.nombreCliente ||
-      !pedidoBase ||
-      !state.savedToMega ||
-      !String(state.megaFolderLink || '').trim();
+    !!state.uploading ||
+    !!state.sendingEmail ||
+    yaEnviado ||
+    !data.nombreCliente ||
+    !state.savedToMega ||
+    !String(state.megaFolderLink || '').trim();
   }
 
   if (yaEnviado && formEl._statusBox) {
@@ -1413,7 +1412,7 @@ function createActionPanel(formEl) {
       return;
     }
 
-    input.click();
+    abrirCamaraPersonalizada(formEl);
   });
 
   input.addEventListener('change', () => {
@@ -1757,6 +1756,8 @@ async function guardarFotosEnMega(formEl) {
       `Fotos guardadas en MEGA. Carpeta: ${(json.monthFolderName || 'Mes actual')} / ${state.folderName}`
     );
 
+    updateActionButtons(formEl);
+
     showToast({
       title: 'Fotos guardadas',
       message: `Las imágenes se subieron correctamente a MEGA.\nLink detectado correctamente.`,
@@ -2050,5 +2051,89 @@ window.addEventListener('load', function() {
 document.addEventListener('DOMContentLoaded', () => {
   fixHerramientasCheckboxes();
 });
+
+function abrirCamaraPersonalizada(formEl) {
+  const overlay = document.createElement('div');
+  overlay.style = `
+    position:fixed;
+    inset:0;
+    background:black;
+    z-index:99999;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+  `;
+
+  const video = document.createElement('video');
+  video.autoplay = true;
+  video.playsInline = true;
+  video.style = 'width:100%; max-height:70vh;';
+
+  const btnCapturar = document.createElement('button');
+  btnCapturar.textContent = '📸 Capturar';
+  btnCapturar.style = 'padding:12px;margin:10px;font-size:16px;';
+
+  const btnFinalizar = document.createElement('button');
+  btnFinalizar.textContent = '✅ Finalizar';
+  btnFinalizar.style = 'padding:12px;margin:10px;font-size:16px;';
+
+  const contador = document.createElement('div');
+  contador.style = 'color:white;font-size:16px;';
+  contador.textContent = 'Fotos: 0';
+
+  overlay.appendChild(video);
+  overlay.appendChild(contador);
+  overlay.appendChild(btnCapturar);
+  overlay.appendChild(btnFinalizar);
+
+  document.body.appendChild(overlay);
+
+  let fotos = [];
+
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: "environment" }
+  }).then(stream => {
+    video.srcObject = stream;
+
+    btnCapturar.onclick = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      ctx.drawImage(video, 0, 0);
+
+      canvas.toBlob(blob => {
+        const file = new File([blob], `foto_${Date.now()}.jpg`, {
+          type: 'image/jpeg'
+        });
+
+        fotos.push(file);
+        contador.textContent = `Fotos: ${fotos.length}`;
+      }, 'image/jpeg');
+    };
+
+    btnFinalizar.onclick = () => {
+      stream.getTracks().forEach(t => t.stop());
+
+      const index = getFormIndex(formEl);
+      const state = ensureFormState(index);
+
+      state.photos.push(...fotos);
+
+      setStatus(formEl, `${state.photos.length} foto(s) listas para guardar en MEGA.`);
+      updateActionButtons(formEl);
+
+      overlay.remove();
+    };
+
+  }).catch(err => {
+    alert('No se pudo abrir la cámara');
+    console.error(err);
+    overlay.remove();
+  });
+}
 
 </script>
