@@ -2128,20 +2128,42 @@ function abrirCamaraPersonalizada(formEl) {
   let fotos = [];
 
   navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: { ideal: "environment" },
-      width: { ideal: 1920 },
-      height: { ideal: 1080 }
-    }
-  }).then(stream => {
-    video.srcObject = stream;
+  video: {
+    facingMode: { ideal: "environment" },
+    width: { ideal: 4096 },
+    height: { ideal: 2160 },
+    aspectRatio: 16/9
+  }
+})
+.then(stream => {
+  video.srcObject = stream;
+
+  const track = stream.getVideoTracks()[0];
+  const capabilities = track.getCapabilities();
+
+  if (capabilities.zoom) {
+    track.applyConstraints({
+      advanced: [{ zoom: capabilities.zoom.max }]
+    });
+  }
+
+  if (capabilities.focusMode) {
+    track.applyConstraints({
+      advanced: [{ focusMode: "continuous" }]
+    });
+  }
+
+  video.style.filter = "brightness(1.1) contrast(1.1)";
 
     btnCapturar.onclick = () => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      canvas.width = video.videoWidth * 1.5;
-      canvas.height = video.videoHeight * 1.5;
+      canvas.width = video.videoWidth * 2;
+      canvas.height = video.videoHeight * 2;
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
 
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -2181,7 +2203,8 @@ function abrirCamaraPersonalizada(formEl) {
       overlay.remove();
     };
 
-  }).catch(err => {
+  })
+  .catch(err => {
     alert('No se pudo abrir la cámara');
     console.error(err);
     overlay.remove();
