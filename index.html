@@ -2141,11 +2141,6 @@ function abrirCamaraPersonalizada(formEl) {
   const track = stream.getVideoTracks()[0];
   const capabilities = track.getCapabilities();
 
-  if (capabilities.zoom) {
-    track.applyConstraints({
-      advanced: [{ zoom: capabilities.zoom.max }]
-    });
-  }
 
   if (capabilities.focusMode) {
     track.applyConstraints({
