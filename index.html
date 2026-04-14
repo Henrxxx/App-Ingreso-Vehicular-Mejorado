@@ -555,7 +555,7 @@ input[type="text"] {
     <input type="text" class="Editbox4" style="position:absolute;left:96px;top:243px;width:278px;height:18px;z-index:10;" name="Editbox1" value="" spellcheck="false">
     <div id="wb_Text5" style="position:absolute;left:25px;top:280px;width:56px;height:18px;z-index:11;">
     <span style="color:#000000;font-family:Arial;font-size:16px;">E-Mail:</span></div>
-    <input type="text" class="Editbox5" style="position:absolute;left:81px;top:275px;width:293px;height:18px;z-index:12;" name="Editbox1" value="" spellcheck="false">
+    <input id="Editbox5" type="text" class="Editbox5" style="position:absolute;left:81px;top:275px;width:293px;height:18px;z-index:12;" name="Editbox1" value="" spellcheck="false">
     <div id="wb_Text6" style="position:absolute;left:433px;top:154px;width:53px;height:18px;z-index:13;">
     <span style="color:#000000;font-family:Arial;font-size:16px;">Marca:</span></div>
     <div id="wb_Text7" style="position:absolute;left:587px;top:154px;width:46px;height:18px;z-index:14;">
@@ -1443,12 +1443,63 @@ function createActionPanel(formEl) {
   updateActionButtons(formEl);
 }
 
+
+
 async function enviarCorreoFormulario(formEl) {
   const index = getFormIndex(formEl);
   const state = ensureFormState(index);
   const data = getFormData(formEl);
   const pedidoRaw = getPedidoRaw(formEl);
   const pedidoBase = normalizePedidoBaseClient(pedidoRaw);
+
+  // ===== VALIDACIÓN DE PEDIDO =====
+  let confirmacionSinPedido = true;
+
+  if (!pedidoBase) {
+    confirmacionSinPedido = confirm("No se ingresó número de pedido. ¿Desea enviar el correo como nuevo?");
+    
+    if (!confirmacionSinPedido) {
+      setStatus(formEl, "Envío cancelado (sin pedido).");
+      return;
+    }
+  }
+
+  // ===== OBTENER EMAIL =====
+  const emailInput = formEl.querySelector('#Editbox5');
+
+  let emailClienteForm = "";
+
+  if (emailInput && emailInput.value) {
+    emailClienteForm = emailInput.value.replace(/\s+/g, "").trim();
+  }
+
+  console.log("EMAIL RAW:", emailInput?.value);
+  console.log("EMAIL LIMPIO:", emailClienteForm);
+
+  // ===== VALIDAR SOLO SI HAY EMAIL =====
+  if (emailClienteForm.length > 0) {
+    const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClienteForm);
+
+    if (!emailValido) {
+      showNotice({
+        title: 'Email inválido',
+        message: 'El correo ingresado no es válido.',
+        type: 'error'
+      });
+      return;
+    }
+  }
+  
+
+  if (emailClienteForm.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClienteForm)) {
+    showNotice({
+      title: 'Email inválido',
+      message: 'El correo ingresado no es válido.',
+      type: 'error'
+    });
+    return;
+  }
+  
 
   if (state.emailSent) {
     showNotice({
@@ -1481,12 +1532,16 @@ async function enviarCorreoFormulario(formEl) {
     ? `Ingreso Vehicular ${pedidoBase}, ${data.nombreCliente || 'Cliente no definido'}`
     : `Ingreso Vehicular ${data.nombreCliente || 'Cliente no definido'}`;
 
+  const emailCliente = (data.email || '').trim();
+
   const payloadBase = {
     pedido: pedidoRaw,
     subject: subjectBase,
     megaFolderLink: state.megaFolderLink,
+    email: emailCliente, // 🔥 AQUÍ VA EL EMAIL DIRECTO AL BACKEND
     data: {
       ...data,
+      email: emailCliente, // redundante pero útil para logs/backend
       pedidoRaw,
       checkboxNumbers: getCheckedCheckboxNumbers(formEl),
       notasExtra: getNotasVehiculo(formEl)
@@ -1601,7 +1656,8 @@ async function enviarCorreoFormulario(formEl) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...payloadBase,
-          forceSendWithoutThread: true
+          clientEmail: document.getElementById("Editbox5").value.trim(),
+          forceSendWithoutThread: !pedidoBase
         })
       });
 
